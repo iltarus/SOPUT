@@ -20,6 +20,18 @@ function loadRaw(): RawRow[] {
   return JSON.parse(buf.toString("utf8")) as RawRow[];
 }
 
+const featuredById = new Map(FEATURED.map((product) => [product.id, product]));
+const packed: RawRow[] = loadRaw();
+const packedById = new Map(packed.map((row) => [row.id, row]));
+const extras = FEATURED.filter((product) => !packedById.has(product.id));
+const extraById = new Map(extras.map((product) => [product.id, product]));
+
+const extraHay = extras.map(
+  (product) =>
+    `${product.id} ${product.name} ${product.brand} ${product.sku} ${product.category} ${product.path ?? ""}`.toLowerCase(),
+);
+const packedHay = packed.map((row) => `${row.id} ${row.n} ${row.b} ${row.c} ${row.p}`.toLowerCase());
+
 function fromRaw(row: RawRow): Product {
   return {
     id: row.id,
@@ -40,41 +52,23 @@ function fromRaw(row: RawRow): Product {
   };
 }
 
-function mergeCatalog(): Product[] {
-  const featuredById = new Map(FEATURED.map((product) => [product.id, product]));
-  const seen = new Set<string>();
-  const sitemap: Product[] = [];
-
-  for (const row of loadRaw()) {
-    const base = fromRaw(row);
-    const featured = featuredById.get(row.id);
-    sitemap.push(
-      featured
-        ? { ...base, ...featured, image: base.image || featured.image, path: base.path }
-        : base,
-    );
-    seen.add(row.id);
-  }
-
-  const extras = FEATURED.filter((product) => !seen.has(product.id));
-  return [...extras, ...sitemap];
+function hydrate(row: RawRow): Product {
+  const featured = featuredById.get(row.id);
+  const base = fromRaw(row);
+  if (!featured) return base;
+  return { ...base, ...featured, image: base.image || featured.image, path: base.path };
 }
 
-export const PRODUCTS = mergeCatalog();
-
-const byId = new Map(PRODUCTS.map((product) => [product.id, product]));
-const haystacks = PRODUCTS.map((product) =>
-  `${product.id} ${product.name} ${product.brand} ${product.sku} ${product.category} ${product.path ?? ""}`.toLowerCase(),
-);
-
 export function getProduct(id: string): Product | undefined {
-  return byId.get(id);
+  const row = packedById.get(id);
+  if (row) return hydrate(row);
+  return extraById.get(id);
 }
 
 export function listCategories(): string[] {
-  return [...new Set(PRODUCTS.map((product) => product.category))].sort((a, b) =>
-    a.localeCompare(b, "ru"),
-  );
+  const set = new Set<string>(extras.map((product) => product.category));
+  for (const row of packed) set.add(row.c);
+  return [...set].sort((a, b) => a.localeCompare(b, "ru"));
 }
 
 export type ProductQuery = {
@@ -85,33 +79,49 @@ export type ProductQuery = {
   limit?: number;
 };
 
+function matchesFilters(department: DepartmentId, category: string, options: ProductQuery, hay: string, id: string) {
+  if (options.department && department !== options.department) return false;
+  if (options.category && category !== options.category) return false;
+  const q = (options.q ?? "").trim().toLowerCase();
+  if (q && id !== q && !hay.includes(q)) return false;
+  return true;
+}
+
 export function queryProducts(options: ProductQuery): { total: number; offset: number; items: Product[] } {
   const q = (options.q ?? "").trim().toLowerCase();
   const offset = Math.max(options.offset ?? 0, 0);
   const limit = Math.min(Math.max(options.limit ?? 48, 1), 96);
-  const matched: Product[] = [];
+  const items: Product[] = [];
+  let total = 0;
 
-  if (q && byId.has(q)) {
-    const exact = byId.get(q)!;
-    const deptOk = !options.department || exact.department === options.department;
-    const catOk = !options.category || exact.category === options.category;
-    if (deptOk && catOk) matched.push(exact);
-  }
-
-  for (let i = 0; i < PRODUCTS.length; i++) {
-    const product = PRODUCTS[i];
-    if (matched.length && product.id === q) continue;
-    if (options.department && product.department !== options.department) continue;
-    if (options.category && product.category !== options.category) continue;
-    if (q && !haystacks[i].includes(q)) continue;
-    matched.push(product);
-  }
-
-  return {
-    total: matched.length,
-    offset,
-    items: matched.slice(offset, offset + limit),
+  const take = (product: Product) => {
+    total += 1;
+    if (total > offset && items.length < limit) items.push(product);
   };
+
+  if (q) {
+    const exact = getProduct(q);
+    if (exact && matchesFilters(exact.department, exact.category, { ...options, q: "" }, "", exact.id)) {
+      take(exact);
+    }
+  }
+
+  for (let i = 0; i < extras.length; i++) {
+    const product = extras[i];
+    if (q && product.id === q) continue;
+    if (!matchesFilters(product.department, product.category, options, extraHay[i], product.id)) continue;
+    take(product);
+  }
+
+  for (let i = 0; i < packed.length; i++) {
+    const row = packed[i];
+    if (q && row.id === q) continue;
+    if (!matchesFilters(row.d, row.c, options, packedHay[i], row.id)) continue;
+    total += 1;
+    if (total > offset && items.length < limit) items.push(hydrate(row));
+  }
+
+  return { total, offset, items };
 }
 
 export function searchProducts(query: string): Product[] {
@@ -120,8 +130,30 @@ export function searchProducts(query: string): Product[] {
 
 export function catalogStats() {
   const byDepartment: Record<string, number> = {};
-  for (const product of PRODUCTS) {
+  for (const product of extras) {
     byDepartment[product.department] = (byDepartment[product.department] ?? 0) + 1;
   }
-  return { total: PRODUCTS.length, byDepartment };
+  for (const row of packed) {
+    byDepartment[row.d] = (byDepartment[row.d] ?? 0) + 1;
+  }
+  return { total: extras.length + packed.length, byDepartment };
+}
+
+/** Collect live products whose name/category match, extras first. */
+export function collectByText(
+  pred: (name: string, category: string, id: string) => boolean,
+  limit: number,
+): Product[] {
+  const out: Product[] = [];
+  for (const product of extras) {
+    if (!pred(product.name, product.category, product.id)) continue;
+    out.push(product);
+    if (out.length >= limit) return out;
+  }
+  for (const row of packed) {
+    if (!pred(row.n, row.c, row.id)) continue;
+    out.push(hydrate(row));
+    if (out.length >= limit) return out;
+  }
+  return out;
 }

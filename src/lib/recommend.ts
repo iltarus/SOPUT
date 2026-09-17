@@ -1,5 +1,5 @@
 import { affinityFor } from "./affinity";
-import { PRODUCTS, getProduct } from "./catalog";
+import { collectByText, getProduct } from "./catalog";
 import { allCompatibility, compatibilityFor } from "./compatibility";
 import { komusCatalogUrl } from "./format";
 import { readOverrides } from "./overrides";
@@ -192,17 +192,12 @@ const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[
   { from: /диспенсер/, tokens: ["мыло", "полотенц"], reason: "Картридж к диспенсеру", weight: 0.9 },
 ];
 
-const hintPools: Product[][] = HINTS.map((hint) => {
-  const pool: Product[] = [];
-  for (const product of PRODUCTS) {
-    const toText = `${product.name} ${product.category}`.toLowerCase();
-    if (hint.tokens.some((token) => toText.includes(token))) {
-      pool.push(product);
-      if (pool.length >= 400) break;
-    }
-  }
-  return pool;
-});
+const hintPools: Product[][] = HINTS.map((hint) =>
+  collectByText((name, category) => {
+    const toText = `${name} ${category}`.toLowerCase();
+    return hint.tokens.some((token) => toText.includes(token));
+  }, 400),
+);
 
 function keywordMatch(source: Product, candidate: Product): { reason: string; weight: number } | null {
   const fromText = `${source.name} ${source.category} ${source.path ?? ""}`.toLowerCase();
