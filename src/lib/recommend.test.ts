@@ -60,6 +60,13 @@ test("корзина не рекомендует уже лежащие в ней
   assert.ok(recs.length > 0);
 });
 
+test("лазерный принтер HP не получает тонер Brother", () => {
+  const recs = recommend("148201", { limit: 12, diversify: false });
+  const ids = recs.map((item) => item.product.id);
+  assert.ok(!ids.includes("148221"));
+  assert.ok(!ids.includes("148222"));
+});
+
 test("каталог содержит карточку с указанным артикулом", () => {
   assert.equal(getProduct("210701")?.category, "Огнетушители");
 });

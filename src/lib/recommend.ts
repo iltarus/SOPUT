@@ -1,6 +1,6 @@
 import { affinityFor } from "./affinity";
 import { PRODUCTS, getProduct } from "./catalog";
-import { compatibilityFor } from "./compatibility";
+import { allCompatibility, compatibilityFor } from "./compatibility";
 import { readOverrides } from "./overrides";
 import { findRule } from "./rules";
 import type {
@@ -71,6 +71,14 @@ function pickGroup(source: Product, rec: Omit<Recommendation, "group">): Recomme
   return "together";
 }
 
+function isForeignConsumable(sourceId: string, candidateId: string): boolean {
+  const links = allCompatibility(candidateId).filter(
+    (row) => row.kind === "consumable" || row.kind === "spare",
+  );
+  if (links.length === 0) return false;
+  return !links.some((row) => row.relatedId === sourceId);
+}
+
 function scoreCandidate(source: Product, candidate: Product, pinIndex: number): Recommendation | null {
   const reasons: Reason[] = [];
   let score = 0;
@@ -88,8 +96,13 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
     reasons.push({ type: "compat", label: compat.label, weight });
   }
 
+  const foreign = isForeignConsumable(source.id, candidate.id);
+  if (foreign && pinIndex < 0) {
+    score -= 55;
+  }
+
   const rule = findRule(source.category, candidate.category);
-  if (rule) {
+  if (rule && !foreign) {
     const weight = 48 * rule.weight;
     score += weight;
     reasons.push({ type: "rule", label: rule.reason, weight });
