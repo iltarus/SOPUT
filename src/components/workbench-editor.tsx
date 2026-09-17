@@ -1,0 +1,165 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Pin, PinOff, Search, EyeOff } from "lucide-react";
+import { toast } from "sonner";
+import { ReasonList } from "@/components/reason-list";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { formatPrice } from "@/lib/format";
+import type { Product, Recommendation } from "@/lib/types";
+
+async function mutate(productId: string, relatedId: string, action: "pin" | "unpin" | "hide" | "unhide") {
+  const response = await fetch("/api/overrides", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ productId, relatedId, action }),
+  });
+  if (!response.ok) throw new Error("Не удалось сохранить");
+}
+
+export function WorkbenchEditor({
+  product,
+  recommendations,
+  catalog,
+  hiddenIds,
+  pinnedIds,
+}: {
+  product: Product;
+  recommendations: Recommendation[];
+  catalog: Product[];
+  hiddenIds: string[];
+  pinnedIds: string[];
+}) {
+  const router = useRouter();
+  const [query, setQuery] = useState("");
+  const [pending, startTransition] = useTransition();
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q.length < 2) return [];
+    return catalog
+      .filter((item) => item.id !== product.id)
+      .filter((item) => `${item.name} ${item.sku} ${item.brand}`.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [catalog, product.id, query]);
+
+  const run = (relatedId: string, action: "pin" | "unpin" | "hide" | "unhide", ok: string) => {
+    startTransition(async () => {
+      try {
+        await mutate(product.id, relatedId, action);
+        toast.success(ok);
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Ошибка сохранения");
+      }
+    });
+  };
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+      <div className="space-y-3">
+        {recommendations.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-card p-8 text-center">
+            <p className="font-medium">Алгоритм ничего не нашёл</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Закрепите товар вручную через поиск справа — он сразу попадёт в блок на карточке.
+            </p>
+          </div>
+        ) : (
+          recommendations.map((item, index) => {
+            const pinned = pinnedIds.includes(item.product.id);
+            return (
+              <div key={item.product.id} className="rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium text-muted-foreground">
+                      #{index + 1} · {item.group} · score {item.score}
+                    </p>
+                    <p className="font-medium leading-snug">{item.product.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      арт. {item.product.sku} · {item.product.category} · {formatPrice(item.product.price)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={pinned ? "secondary" : "default"}
+                      disabled={pending}
+                      onClick={() => run(item.product.id, pinned ? "unpin" : "pin", pinned ? "Снято с закрепления" : "Закреплено")}
+                    >
+                      {pinned ? <PinOff /> : <Pin />}
+                      {pinned ? "Открепить" : "Закрепить"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => run(item.product.id, "hide", "Скрыто из выдачи")}
+                    >
+                      <EyeOff />
+                      Скрыть
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <ReasonList reasons={item.reasons} limit={5} />
+                </div>
+              </div>
+            );
+          })
+        )}
+        {hiddenIds.length > 0 ? (
+          <div className="rounded-xl border bg-muted/40 p-4">
+            <p className="mb-2 text-sm font-medium">Скрытые</p>
+            <div className="space-y-2">
+              {hiddenIds.map((id) => {
+                const item = catalog.find((product) => product.id === id);
+                if (!item) return null;
+                return (
+                  <div key={id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate">{item.name}</span>
+                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(id, "unhide", "Снова в выдаче")}>
+                      Вернуть
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      <aside className="space-y-3 lg:sticky lg:top-20 h-fit">
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-sm font-medium">Закрепить вручную</p>
+          <p className="mt-1 text-xs text-muted-foreground">Любой артикул каталога можно поставить первым в блоке.</p>
+          <div className="relative mt-3">
+            <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Название или артикул" className="pl-9" />
+          </div>
+          <div className="mt-3 space-y-2">
+            {matches.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setQuery("");
+                  run(item.id, "pin", "Товар закреплён");
+                }}
+                className="w-full rounded-lg border px-3 py-2 text-left text-sm hover:border-primary/40"
+              >
+                <span className="block truncate font-medium">{item.name}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">арт. {item.sku}</span>
+              </button>
+            ))}
+            {query.trim().length >= 2 && matches.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Нет совпадений в демо-каталоге.</p>
+            ) : null}
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+}
