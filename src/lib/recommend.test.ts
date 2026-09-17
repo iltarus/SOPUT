@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { recommend, recommendForCart } from "./recommend";
+import { komusCatalogUrl } from "./format";
 import { readOverrides, writeOverrides } from "./overrides";
 import { getProduct } from "./catalog";
 
@@ -69,4 +70,13 @@ test("лазерный принтер HP не получает тонер Brothe
 
 test("каталог содержит карточку с указанным артикулом", () => {
   assert.equal(getProduct("210701")?.category, "Огнетушители");
+});
+
+test("ссылка на Комус открывает поиск, а не выдуманный /p/{id}", () => {
+  const product = getProduct("148201");
+  assert.ok(product);
+  const url = komusCatalogUrl(product);
+  assert.ok(url.startsWith("https://www.komus.ru/search?text="));
+  assert.equal(url.includes("/p/148201"), false);
+  assert.ok(decodeURIComponent(url).includes("LaserJet"));
 });

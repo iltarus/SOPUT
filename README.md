@@ -50,4 +50,4 @@ Content-Type: application/json
 { "ids": ["148201", "110101"] }
 ```
 
-Артикул в демо совпадает с хвостом URL Комус: `https://www.komus.ru/p/{id}/`. Ручные закрепления пишутся в `data/overrides.json`.
+Артикул в демо — внутренний id сервиса. Ссылка «Карточка на komus.ru» открывает поиск на витрине: `https://www.komus.ru/search?text=...`. Ручные закрепления пишутся в `data/overrides.json`.

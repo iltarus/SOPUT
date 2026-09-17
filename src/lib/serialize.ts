@@ -1,3 +1,4 @@
+import { komusCatalogUrl } from "./format";
 import type { Product } from "./types";
 
 export function serializeProduct(product: Product) {
@@ -18,6 +19,6 @@ export function serializeProduct(product: Product) {
     description: product.description,
     url: `/p/${product.id}`,
     workbenchUrl: `/workbench/${product.id}`,
-    komusUrl: `https://www.komus.ru/p/${product.id}/`,
+    komusUrl: komusCatalogUrl(product),
   };
 }

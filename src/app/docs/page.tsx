@@ -44,8 +44,8 @@ export default function DocsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">API для витрины Комус</h1>
       <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
         Виджет на карточке товара ходит в <code className="rounded bg-muted px-1">/related</code> и рисует группы
-        «Расходные материалы» и «С этим покупают». Артикул в демо совпадает с хвостом URL Комус:{" "}
-        <code className="rounded bg-muted px-1">komus.ru/p/&#123;id&#125;/</code>.
+        «Расходные материалы» и «С этим покупают». Ссылка «Карточка на komus.ru» открывает поиск на витрине Комус по
+        бренду, артикулу и названию — демо-id не совпадают с живыми <code className="rounded bg-muted px-1">/p/&#123;id&#125;/</code>.
       </p>
       <div className="mt-6 space-y-3">
         {ENDPOINTS.map((item) => (

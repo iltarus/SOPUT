@@ -1,6 +1,7 @@
 import { affinityFor } from "./affinity";
 import { PRODUCTS, getProduct } from "./catalog";
 import { allCompatibility, compatibilityFor } from "./compatibility";
+import { komusCatalogUrl } from "./format";
 import { readOverrides } from "./overrides";
 import { findRule } from "./rules";
 import type {
@@ -289,6 +290,6 @@ export function serializeRecommendation(rec: Recommendation) {
       label: reason.label,
     })),
     url: `/p/${rec.product.id}`,
-    komusUrl: `https://www.komus.ru/p/${rec.product.id}/`,
+    komusUrl: komusCatalogUrl(rec.product),
   };
 }

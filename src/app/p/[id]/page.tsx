@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { getProduct } from "@/lib/catalog";
 import { departmentTitle } from "@/lib/departments";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, komusCatalogUrl } from "@/lib/format";
 import { relatedPayload } from "@/lib/recommend";
 import { cn } from "@/lib/utils";
 
@@ -58,9 +58,9 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               Открыть в верстаке
             </Link>
             <a
-              href={`https://www.komus.ru/p/${product.id}/`}
+              href={komusCatalogUrl(product)}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className={cn(buttonVariants({ variant: "ghost" }))}
             >
               Карточка на komus.ru
