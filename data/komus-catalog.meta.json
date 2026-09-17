@@ -6,8 +6,8 @@
   "productUrl": "https://www.komus.ru/p/{id}/",
   "queryCli": "python3 scripts/query-komus-catalog.py",
   "handoff": "data/HANDOFF.md",
-  "downloadUrl": "http://84.201.169.67/api/catalog/dump",
-  "locatorUrl": "http://84.201.169.67/api/catalog",
+  "downloadUrl": "http://84.201.169.67/dumps/komus-catalog.json.gz",
+  "locatorUrl": "http://84.201.169.67/dumps/catalog-locator.json",
   "appLoader": "src/lib/catalog.ts",
   "rebuild": "npm run catalog:build",
   "fields": {

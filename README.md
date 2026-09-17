@@ -46,8 +46,8 @@ python3 scripts/query-komus-catalog.py -q 'степлер' --limit 5
 С другого воркспейса, без git:
 
 ```bash
-curl -fsSL http://84.201.169.67/api/catalog
-curl -fsSL -o komus-catalog.json.gz http://84.201.169.67/api/catalog/dump
+curl -fsSL http://84.201.169.67/dumps/catalog-locator.json
+curl -fsSL -o komus-catalog.json.gz http://84.201.169.67/dumps/komus-catalog.json.gz
 ```
 
 Пересборка из скачанных sitemap:

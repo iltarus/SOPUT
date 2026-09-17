@@ -1,0 +1,13 @@
+{
+  "what": "Полный дамп товаров komus.ru. Не скрейпить витрину. Glob/Grep часто не видят .gz — читать data/HANDOFF.md.",
+  "gitFile": "data/komus-catalog.json.gz",
+  "count": 169897,
+  "cli": "python3 scripts/query-komus-catalog.py --stats",
+  "locatorUrl": "http://84.201.169.67/dumps/catalog-locator.json",
+  "downloadUrl": "http://84.201.169.67/dumps/komus-catalog.json.gz",
+  "coverageUrl": "http://84.201.169.67/dumps/komus-coverage.json.gz",
+  "handoffUrl": "http://84.201.169.67/dumps/HANDOFF.md",
+  "sampleUrl": "http://84.201.169.67/dumps/komus-catalog.sample.json",
+  "searchApi": "http://84.201.169.67/api/products?q=&limit=5",
+  "apiLocator": "http://84.201.169.67/api/catalog"
+}

@@ -44,7 +44,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/api/catalog/dump",
-    desc: "Скачать data/komus-catalog.json.gz (~169 897 SKU). Не HTML.",
+    desc: "Скачать data/komus-catalog.json.gz (~169 897 SKU). Не HTML. Статика: /dumps/komus-catalog.json.gz.",
   },
 ];
 

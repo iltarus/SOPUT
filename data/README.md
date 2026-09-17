@@ -95,9 +95,11 @@ GET /api/products/{id}/related
 Публично:
 
 ```
+GET http://84.201.169.67/dumps/catalog-locator.json
+GET http://84.201.169.67/dumps/komus-catalog.json.gz   # gzip, ~13 MB, без Next.js
+GET http://84.201.169.67/dumps/HANDOFF.md
 GET http://84.201.169.67/api/catalog
-GET http://84.201.169.67/api/catalog/dump          # gzip, ~13 MB
-GET http://84.201.169.67/api/catalog/coverage      # gzip сопутки
+GET http://84.201.169.67/api/catalog/dump
 GET http://84.201.169.67/api/products?q=степлер&limit=5
 ```
 

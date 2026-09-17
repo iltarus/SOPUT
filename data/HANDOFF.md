@@ -27,8 +27,8 @@ python3 scripts/query-komus-catalog.py --id 1042218
 Скачать готовый gzip (не HTML):
 
 ```bash
-curl -fsSL -o komus-catalog.json.gz http://84.201.169.67/api/catalog/dump
-curl -fsSL http://84.201.169.67/api/catalog
+curl -fsSL -o komus-catalog.json.gz http://84.201.169.67/dumps/komus-catalog.json.gz
+curl -fsSL http://84.201.169.67/dumps/catalog-locator.json
 python3 -c "import gzip,json; r=json.loads(gzip.open('komus-catalog.json.gz','rt',encoding='utf-8').read()); print(len(r), r[0])"
 ```
 
@@ -48,8 +48,9 @@ GET http://84.201.169.67/api/products/1042218
    Как читать: data/README.md и data/HANDOFF.md
    Grep не видит .gz — смотри data/komus-catalog.meta.json
    CLI: python3 scripts/query-komus-catalog.py --stats
-2) Если файла нет: curl -fsSL -o data/komus-catalog.json.gz http://84.201.169.67/api/catalog/dump
-   Локатор: GET http://84.201.169.67/api/catalog
+2) Если файла нет: curl -fsSL -o data/komus-catalog.json.gz http://84.201.169.67/dumps/komus-catalog.json.gz
+   Локатор: GET http://84.201.169.67/dumps/catalog-locator.json
+   Как читать: GET http://84.201.169.67/dumps/HANDOFF.md
 3) Формат строки: {id, n, b, d, c, p, i}. Карточка https://www.komus.ru/p/{id}/
    Имена из обратной транслитерации slug sitemap, цен нет.
 ```
