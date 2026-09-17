@@ -4,6 +4,7 @@ import { recommend, recommendForCart } from "./recommend";
 import { komusCatalogUrl } from "./format";
 import { readOverrides, writeOverrides } from "./overrides";
 import { getProduct, catalogStats } from "./catalog";
+import { coverageSummary, getCoverage } from "./coverage";
 
 const snapshot = readOverrides();
 
@@ -101,4 +102,16 @@ test("живой степлер из sitemap получает скобы по к
   const recs = recommend("1271903", { limit: 8 });
   assert.ok(recs.length > 0);
   assert.ok(recs.some((item) => item.product.name.toLowerCase().includes("скоб")));
+});
+
+test("снимок покрытия считает весь каталог и пишет сопутствующие", () => {
+  const summary = coverageSummary();
+  assert.ok(summary.total > 100000);
+  assert.equal(summary.full + summary.ok + summary.weak + summary.empty, summary.total);
+  const printer = getCoverage("1042218");
+  assert.ok(printer);
+  assert.ok(printer.count >= 3);
+  assert.ok(printer.related.length >= 3);
+  const featured = getCoverage("148201");
+  assert.ok(featured?.related.some((item) => item.id === "148202"));
 });

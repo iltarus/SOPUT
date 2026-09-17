@@ -48,6 +48,7 @@ python3 scripts/query-komus-catalog.py -q 'степлер' --limit 5
 ```bash
 # файлы /tmp/komus-sitemaps/{0..32}.xml
 npm run catalog:build
+npm run coverage:build
 ```
 
 Проверка виджета:

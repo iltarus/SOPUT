@@ -106,7 +106,7 @@ export default async function HomePage({
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Kpi label="Товаров в каталоге" value={stats.total.toLocaleString("ru-RU")} hint="sitemap komus.ru" />
-        <Kpi label="Покрытие витрины" value={`${summary.coveragePct}%`} hint={`${summary.featured} размеченных SKU`} />
+        <Kpi label="Покрытие витрины" value={`${summary.coveragePct}%`} hint={`${summary.total.toLocaleString("ru-RU")} карточек`} />
         <Kpi label="Правил связок" value={String(RULES.length)} hint="категория → категория" />
         <Kpi label="Заказов в модели" value={String(ORDER_VOLUME)} hint="совместные покупки" />
       </div>

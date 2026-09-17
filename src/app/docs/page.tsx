@@ -34,7 +34,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/api/coverage",
-    desc: "Покрытие каталога рекомендациями.",
+    desc: "Снимок покрытия по всему каталогу. Параметры: q, department, label, offset, limit. ?id={артикул} — одна карточка с сопутствующими.",
   },
 ];
 

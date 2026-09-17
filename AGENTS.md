@@ -18,3 +18,4 @@ Live SKUs from komus.ru sit in git as gzip JSON. Do not scrape the storefront.
 - **HTTP (if the app is up):** `GET /api/products?q=&limit=48`
 - **App loader:** `src/lib/catalog.ts` (server-only)
 - Featured merchandising slice (not the dump): `src/lib/catalog-featured.ts`
+- **Related-product snapshot (full catalog):** `data/komus-coverage.json.gz` — `npm run coverage:build`

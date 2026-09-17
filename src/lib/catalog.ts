@@ -139,6 +139,29 @@ export function catalogStats() {
   return { total: extras.length + packed.length, byDepartment };
 }
 
+export type CatalogMeta = {
+  id: string;
+  name: string;
+  department: DepartmentId;
+  category: string;
+};
+
+export function eachCatalogMeta(fn: (row: CatalogMeta) => boolean | void) {
+  for (const product of extras) {
+    const stop = fn({
+      id: product.id,
+      name: product.name,
+      department: product.department,
+      category: product.category,
+    });
+    if (stop === false) return;
+  }
+  for (const row of packed) {
+    const stop = fn({ id: row.id, name: row.n, department: row.d, category: row.c });
+    if (stop === false) return;
+  }
+}
+
 /** Collect live products whose name/category match, extras first. */
 export function collectByText(
   pred: (name: string, category: string, id: string) => boolean,
