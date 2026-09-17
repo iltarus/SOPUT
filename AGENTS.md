@@ -7,3 +7,14 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Komus product dump
+
+Live SKUs from komus.ru sit in git as gzip JSON. Do not scrape the storefront.
+
+- **File:** `data/komus-catalog.json.gz` (~169 897 rows)
+- **How to use:** `data/README.md`
+- **CLI:** `python3 scripts/query-komus-catalog.py --id 1042218`
+- **HTTP (if the app is up):** `GET /api/products?q=&limit=48`
+- **App loader:** `src/lib/catalog.ts` (server-only)
+- Featured merchandising slice (not the dump): `src/lib/catalog-featured.ts`

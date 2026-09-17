@@ -9,8 +9,9 @@ import json
 import re
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
 SRC = Path("/tmp/komus-sitemaps")
-OUT = Path("/workspace/data/komus-catalog.json.gz")
+OUT = ROOT / "data" / "komus-catalog.json.gz"
 
 LOC_RE = re.compile(r"<loc>(https://www\.komus\.ru/[^<]+)</loc>")
 IMG_RE = re.compile(r"<image:loc>([^<]+)</image:loc>")

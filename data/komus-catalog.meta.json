@@ -1,0 +1,43 @@
+{
+  "file": "data/komus-catalog.json.gz",
+  "format": "gzip of a JSON array",
+  "count": 169897,
+  "source": "https://www.komus.ru/sitemap.xml",
+  "productUrl": "https://www.komus.ru/p/{id}/",
+  "queryCli": "python3 scripts/query-komus-catalog.py",
+  "appLoader": "src/lib/catalog.ts",
+  "rebuild": "npm run catalog:build",
+  "fields": {
+    "id": "Komus article id",
+    "n": "name from reverse-transliterated slug",
+    "b": "brand heuristic",
+    "d": "department id",
+    "c": "category",
+    "p": "katalog path without /katalog/ and /p/{id}/",
+    "i": "preview image URL or empty string"
+  },
+  "departments": {
+    "furniture": 34805,
+    "print": 18799,
+    "tools": 13764,
+    "computers": 13180,
+    "workwear": 13167,
+    "appliances": 12108,
+    "trade": 8222,
+    "cleaning": 7563,
+    "food": 7374,
+    "stationery": 7336,
+    "kitchen": 6689,
+    "electronics": 5590,
+    "school": 5149,
+    "paper": 4195,
+    "home": 3032,
+    "gifts": 2351,
+    "sport": 2093,
+    "packaging": 1543,
+    "seasonal": 1524,
+    "beauty": 896,
+    "safety": 495,
+    "other": 22
+  }
+}

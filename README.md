@@ -33,7 +33,17 @@ npm run dev
 
 Откройте [http://127.0.0.1:43127](http://127.0.0.1:43127). Сборка: `npm run build && npm start`.
 
-Каталог лежит в `data/komus-catalog.json.gz`. Пересборка из скачанных sitemap:
+## База товаров для других агентов
+
+Снимок каталога Комус закоммичен в [`data/komus-catalog.json.gz`](data/komus-catalog.json.gz). Контракт, поля и примеры чтения — в [`data/README.md`](data/README.md).
+
+```bash
+python3 scripts/query-komus-catalog.py --stats
+python3 scripts/query-komus-catalog.py --id 1042218
+python3 scripts/query-komus-catalog.py -q 'степлер' --limit 5
+```
+
+Пересборка из скачанных sitemap:
 
 ```bash
 # файлы /tmp/komus-sitemaps/{0..32}.xml
