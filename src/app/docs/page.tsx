@@ -36,6 +36,16 @@ const ENDPOINTS = [
     path: "/api/coverage",
     desc: "Снимок покрытия по всему каталогу. Параметры: q, department, label, offset, limit. ?id={артикул} — одна карточка с сопутствующими.",
   },
+  {
+    method: "GET",
+    path: "/api/catalog",
+    desc: "Локатор дампа для другого агента: путь в git, CLI, прямые URL на gzip.",
+  },
+  {
+    method: "GET",
+    path: "/api/catalog/dump",
+    desc: "Скачать data/komus-catalog.json.gz (~169 897 SKU). Не HTML.",
+  },
 ];
 
 export default function DocsPage() {

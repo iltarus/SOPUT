@@ -2,6 +2,8 @@
 
 Снимок **всех товарных URL** из sitemap Комус. Лежит в git, его можно читать без запуска Next.js.
 
+Передача другому агенту Cursor: [`HANDOFF.md`](./HANDOFF.md). Поиск по репо часто пропускает `*.gz` — начинайте с этого README, `komus-catalog.meta.json` или `GET http://84.201.169.67/api/catalog`.
+
 | | |
 |---|---|
 | Файл | [`data/komus-catalog.json.gz`](./komus-catalog.json.gz) |
@@ -90,7 +92,14 @@ GET /api/products/{id}
 GET /api/products/{id}/related
 ```
 
-Публично: `http://84.201.169.67/api/products?q=степлер&limit=5`.
+Публично:
+
+```
+GET http://84.201.169.67/api/catalog
+GET http://84.201.169.67/api/catalog/dump          # gzip, ~13 MB
+GET http://84.201.169.67/api/catalog/coverage      # gzip сопутки
+GET http://84.201.169.67/api/products?q=степлер&limit=5
+```
 
 Ответ уже гидратирован (name, brand, image, komusUrl). Это **не** сырой массив из gzip: сверху накладывается featured-срез.
 

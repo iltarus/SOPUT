@@ -11,11 +11,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Komus product dump
 
 Live SKUs from komus.ru sit in git as gzip JSON. Do not scrape the storefront.
+**Glob/Grep skip `*.gz`.** Start from `data/HANDOFF.md` and `data/komus-catalog.meta.json`.
 
 - **File:** `data/komus-catalog.json.gz` (~169 897 rows)
+- **Handoff for other agents:** `data/HANDOFF.md`
 - **How to use:** `data/README.md`
 - **CLI:** `python3 scripts/query-komus-catalog.py --id 1042218`
-- **HTTP (if the app is up):** `GET /api/products?q=&limit=48`
+- **HTTP locator:** `GET /api/catalog` (public `http://84.201.169.67/api/catalog`)
+- **HTTP dump:** `GET /api/catalog/dump`
+- **HTTP search:** `GET /api/products?q=&limit=48`
 - **App loader:** `src/lib/catalog.ts` (server-only)
 - Featured merchandising slice (not the dump): `src/lib/catalog-featured.ts`
 - **Related-product snapshot (full catalog):** `data/komus-coverage.json.gz` — `npm run coverage:build`

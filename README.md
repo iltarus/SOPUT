@@ -35,12 +35,19 @@ npm run dev
 
 ## База товаров для других агентов
 
-Снимок каталога Комус закоммичен в [`data/komus-catalog.json.gz`](data/komus-catalog.json.gz). Контракт, поля и примеры чтения — в [`data/README.md`](data/README.md).
+Поиск агента по репозиторию часто **не видит** `*.gz`. Каталог уже в git: [`data/komus-catalog.json.gz`](data/komus-catalog.json.gz). Куда смотреть — [`data/HANDOFF.md`](data/HANDOFF.md), контракт — [`data/README.md`](data/README.md).
 
 ```bash
 python3 scripts/query-komus-catalog.py --stats
 python3 scripts/query-komus-catalog.py --id 1042218
 python3 scripts/query-komus-catalog.py -q 'степлер' --limit 5
+```
+
+С другого воркспейса, без git:
+
+```bash
+curl -fsSL http://84.201.169.67/api/catalog
+curl -fsSL -o komus-catalog.json.gz http://84.201.169.67/api/catalog/dump
 ```
 
 Пересборка из скачанных sitemap:
