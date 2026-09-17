@@ -164,19 +164,23 @@ export function eachCatalogMeta(fn: (row: CatalogMeta) => boolean | void) {
 
 /** Collect live products whose name/category match, extras first. */
 export function collectByText(
-  pred: (name: string, category: string, id: string) => boolean,
+  pred: (name: string, category: string, id: string, path: string, department: DepartmentId) => boolean,
   limit: number,
 ): Product[] {
   const out: Product[] = [];
   for (const product of extras) {
-    if (!pred(product.name, product.category, product.id)) continue;
+    if (!pred(product.name, product.category, product.id, product.path ?? "", product.department)) continue;
     out.push(product);
     if (out.length >= limit) return out;
   }
   for (const row of packed) {
-    if (!pred(row.n, row.c, row.id)) continue;
+    if (!pred(row.n, row.c, row.id, row.p, row.d)) continue;
     out.push(hydrate(row));
     if (out.length >= limit) return out;
   }
   return out;
+}
+
+export function collectByDepartment(department: DepartmentId, limit: number): Product[] {
+  return collectByText((_n, _c, _id, _p, d) => d === department, limit);
 }

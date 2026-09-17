@@ -104,6 +104,26 @@ test("живой степлер из sitemap получает скобы по к
   assert.ok(recs.some((item) => item.product.name.toLowerCase().includes("скоб")));
 });
 
+test("письменный стол из sitemap получает кресло или канцелярию, а не пустую выдачу", () => {
+  const recs = recommend("2372300", { limit: 8 });
+  assert.ok(recs.length >= 3);
+  const blob = recs.map((item) => `${item.product.name} ${item.product.category} ${item.product.department}`).join(" ").toLowerCase();
+  assert.ok(/кресл|тумб|коврик|лотк|stationery|cleaning/.test(blob));
+});
+
+test("шуруповёрт получает крепёж или СИЗ", () => {
+  const recs = recommend("1747684", { limit: 8 });
+  assert.ok(recs.length >= 3);
+  const blob = recs.map((item) => `${item.product.name} ${item.product.department}`).join(" ").toLowerCase();
+  assert.ok(/бит|саморез|сверл|workwear|packaging/.test(blob));
+});
+
+test("заправка картриджа не попадает в сопутку к живому принтеру", () => {
+  const recs = recommend("1042218", { limit: 8 });
+  assert.ok(recs.length >= 3);
+  assert.ok(!recs.some((item) => /заправка|восстановлен/.test(`${item.product.name} ${item.product.category}`.toLowerCase())));
+});
+
 test("снимок покрытия считает весь каталог и пишет сопутствующие", () => {
   const summary = coverageSummary();
   assert.ok(summary.total > 100000);

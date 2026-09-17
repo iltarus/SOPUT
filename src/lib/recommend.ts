@@ -1,10 +1,7 @@
 import { affinityFor } from "./affinity";
-import { collectByText, getProduct } from "./catalog";
-import { allCompatibility, compatibilityFor } from "./compatibility";
-import { komusCatalogUrl } from "./format";
-import { readOverrides } from "./overrides";
-import { findRule } from "./rules";
+import { collectByDepartment, collectByText, getProduct } from "./catalog";
 import type {
+  DepartmentId,
   Product,
   Reason,
   RecommendOptions,
@@ -12,6 +9,10 @@ import type {
   RecommendationGroup,
   RelatedResponse,
 } from "./types";
+import { allCompatibility, compatibilityFor } from "./compatibility";
+import { komusCatalogUrl } from "./format";
+import { readOverrides } from "./overrides";
+import { findRule } from "./rules";
 
 const GROUP_TITLES: Record<Recommendation["group"], string> = {
   pinned: "Закреплено мерчандайзером",
@@ -136,6 +137,13 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
     reasons.push({ type: "rule", label: keyword.reason, weight: 36 * keyword.weight });
   }
 
+  const dept = departmentLink(source, candidate);
+  if (dept) {
+    const weight = 32 * dept.weight;
+    score += weight;
+    reasons.push({ type: "rule", label: dept.reason, weight });
+  }
+
   const attrs = attributeBoost(source, candidate);
   if (attrs.score > 0 && (compat || rule)) {
     score += attrs.score;
@@ -171,6 +179,11 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
   return { ...base, group: pickGroup(source, base) };
 }
 
+function isServiceSku(name: string, category: string, path = ""): boolean {
+  const text = `${name} ${category} ${path}`.toLowerCase();
+  return /заправка|восстановлен|ремонт|ауцорс|обслуживание|nashi-uslugi/.test(text);
+}
+
 const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[] = [
   { from: /принтер|мфу|laserjet|lazern|ecotank|струйн/, tokens: ["картридж", "чернил", "тонер", "бумага", "фотобарабан"], reason: "Расходник к технике печати", weight: 1 },
   { from: /картридж|тонер|чернил/, tokens: ["бумага", "принтер", "мфу"], reason: "Бумага и техника к расходнику печати", weight: 0.7 },
@@ -183,21 +196,133 @@ const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[
   { from: /пистолет/, tokens: ["стержн", "скотч", "этикет"], reason: "Расходник к пистолету", weight: 0.7 },
   { from: /ноутбук|noutbuk/, tokens: ["мыш", "сумк", "коврик"], reason: "Аксессуары к ноутбуку", weight: 0.8 },
   { from: /монитор/, tokens: ["кабел", "hdmi"], reason: "Кабель к монитору", weight: 0.8 },
-  { from: /кресл/, tokens: ["коврик"], reason: "Коврик под кресло", weight: 0.8 },
+  { from: /смартфон|планшет/, tokens: ["чехол", "зарядн", "кабел"], reason: "Чехол и зарядка к устройству", weight: 0.85 },
+  { from: /мыш/, tokens: ["коврик"], reason: "Коврик к мыши", weight: 0.75 },
+  { from: /телевизор/, tokens: ["кабел", "кронштейн"], reason: "Кабель и кронштейн к телевизору", weight: 0.8 },
+  { from: /наушник/, tokens: ["кабел", "чехол"], reason: "Аксессуар к наушникам", weight: 0.55 },
+  { from: /стол|писмен/, tokens: ["кресл", "тумб", "коврик", "ламп", "лотк"], reason: "Кресло, тумба и органайзер к столу", weight: 0.9 },
+  { from: /кресл|стул/, tokens: ["коврик", "тумб"], reason: "Коврик и тумба к креслу", weight: 0.8 },
+  { from: /шкаф/, tokens: ["папк", "вешал", "короб"], reason: "Хранение к шкафу", weight: 0.7 },
+  { from: /стеллаж/, tokens: ["короб", "контейнер", "лотк"], reason: "Короба и лотки к стеллажу", weight: 0.75 },
+  { from: /тумб/, tokens: ["лотк", "органайзер"], reason: "Лоток к тумбе", weight: 0.65 },
+  { from: /диван|банкет/, tokens: ["подушк", "плед"], reason: "Текстиль к мягкой мебели", weight: 0.7 },
+  { from: /шуруповерт|дрел|дрель/, tokens: ["бит", "саморез", "сверл", "аккумулятор"], reason: "Биты и крепёж к шуруповёрту", weight: 0.9 },
+  { from: /шлифмашин|болгарк/, tokens: ["диск", "круг"], reason: "Круги к шлифмашине", weight: 0.9 },
+  { from: /кист|валик|маляр/, tokens: ["лент", "ванночк", "скотч"], reason: "Расходник к малярным работам", weight: 0.65 },
+  { from: /светилник|светильник|ламп/, tokens: ["ламп", "патрон"], reason: "Лампа к светильнику", weight: 0.7 },
+  { from: /саморез|шуруп/, tokens: ["шуруповерт", "бит"], reason: "Инструмент к крепежу", weight: 0.6 },
+  { from: /костюм|куртк|брюк|халат|спецодежд/, tokens: ["перчат", "каск", "ботин", "носк"], reason: "СИЗ к спецодежде", weight: 0.7 },
+  { from: /ботинк|сапог|полуботин/, tokens: ["носк", "стельк", "крем"], reason: "Носки и уход к обуви", weight: 0.7 },
+  { from: /холодильник|холодилник/, tokens: ["контейнер", "пакет"], reason: "Контейнеры к холодильнику", weight: 0.65 },
+  { from: /сплит/, tokens: ["фильтр"], reason: "Фильтр к сплит-системе", weight: 0.75 },
+  { from: /кулер/, tokens: ["вода", "стакан"], reason: "Вода и посуда к кулеру", weight: 1 },
+  { from: /стирал/, tokens: ["порошок", "кондиционер"], reason: "Бытовая химия к стиральной машине", weight: 0.9 },
   { from: /кофемашин|кофеварк|кофемолк/, tokens: ["кофе", "стакан", "сахар"], reason: "Кофе и посуда к кофемашине", weight: 1 },
   { from: /чайник/, tokens: ["чай", "стакан"], reason: "Чай к чайнику", weight: 0.85 },
   { from: /огнетушител/, tokens: ["подставк", "знак"], reason: "Подставка и знак к огнетушителю", weight: 0.95 },
   { from: /короб|гофро/, tokens: ["скотч", "пленк", "плёнк"], reason: "Скотч и плёнка к коробу", weight: 0.9 },
+  { from: /скотч|клейк/, tokens: ["диспенсер", "нож", "короб"], reason: "Диспенсер и короб к скотчу", weight: 0.75 },
   { from: /халат|спецодежд/, tokens: ["перчат", "шкаф"], reason: "СИЗ и шкаф к спецодежде", weight: 0.55 },
   { from: /диспенсер/, tokens: ["мыло", "полотенц"], reason: "Картридж к диспенсеру", weight: 0.9 },
+  { from: /швабр|моп/, tokens: ["моп", "ведро", "насадк"], reason: "Насадка и ведро к швабре", weight: 0.9 },
+  { from: /мешк для мусор|бак для мусор|контейнер.{0,12}мусор/, tokens: ["мешк", "бак"], reason: "Мешки и бак в комплект уборки", weight: 0.8 },
+  { from: /тетрад|пенал|ранец/, tokens: ["ручк", "карандаш", "тетрад", "пенал"], reason: "Канцелярия к учёбе", weight: 0.7 },
+  { from: /елк|елочн|гирлянд/, tokens: ["игрушк", "гирлянд", "мишур"], reason: "Игрушки и гирлянды к ёлке", weight: 0.85 },
+  { from: /шампунь|гель для душа/, tokens: ["балзам", "мочал", "полотенц"], reason: "Уход в комплект к гигиене", weight: 0.55 },
 ];
 
 const hintPools: Product[][] = HINTS.map((hint) =>
-  collectByText((name, category) => {
+  collectByText((name, category, _id, path) => {
+    if (isServiceSku(name, category, path)) return false;
     const toText = `${name} ${category}`.toLowerCase();
     return hint.tokens.some((token) => toText.includes(token));
-  }, 400),
+  }, 250),
 );
+
+const DEPT_COMPLEMENT: Record<DepartmentId, { department: DepartmentId; reason: string; weight: number }[]> = {
+  furniture: [
+    { department: "cleaning", reason: "Хозтовары к мебели и рабочему месту", weight: 0.45 },
+    { department: "stationery", reason: "Канцелярия к офисной мебели", weight: 0.4 },
+  ],
+  print: [{ department: "paper", reason: "Бумага к оргтехнике и расходникам печати", weight: 0.5 }],
+  tools: [
+    { department: "workwear", reason: "СИЗ к инструменту", weight: 0.45 },
+    { department: "packaging", reason: "Крепёж и расходники рядом с инструментом", weight: 0.35 },
+  ],
+  computers: [
+    { department: "electronics", reason: "Кабели и периферия к компьютеру", weight: 0.45 },
+    { department: "stationery", reason: "Организация рабочего места", weight: 0.35 },
+  ],
+  workwear: [
+    { department: "cleaning", reason: "Уход и расходники к спецодежде", weight: 0.4 },
+    { department: "safety", reason: "Охрана труда к СИЗ", weight: 0.45 },
+  ],
+  appliances: [
+    { department: "kitchen", reason: "Посуда к бытовой технике", weight: 0.5 },
+    { department: "food", reason: "Продукты к кухонной технике", weight: 0.45 },
+    { department: "cleaning", reason: "Уход за техникой", weight: 0.35 },
+  ],
+  trade: [
+    { department: "packaging", reason: "Упаковка к торговому оборудованию", weight: 0.45 },
+    { department: "workwear", reason: "Форма к рабочему месту", weight: 0.35 },
+  ],
+  cleaning: [
+    { department: "workwear", reason: "СИЗ к уборке", weight: 0.45 },
+    { department: "packaging", reason: "Мешки и тара к клинингу", weight: 0.4 },
+  ],
+  food: [{ department: "kitchen", reason: "Посуда и расходники к продуктам", weight: 0.55 }],
+  stationery: [{ department: "paper", reason: "Бумага к канцелярии", weight: 0.5 }],
+  kitchen: [
+    { department: "food", reason: "Продукты к посуде", weight: 0.45 },
+    { department: "cleaning", reason: "Моющие к кухне", weight: 0.4 },
+  ],
+  electronics: [
+    { department: "computers", reason: "Периферия к электронике", weight: 0.4 },
+    { department: "tools", reason: "Кабель и крепёж к технике", weight: 0.35 },
+  ],
+  school: [
+    { department: "stationery", reason: "Канцелярия к учёбе", weight: 0.55 },
+    { department: "paper", reason: "Тетради и бумага к школе", weight: 0.5 },
+  ],
+  paper: [{ department: "stationery", reason: "Степлер и архив к бумаге", weight: 0.45 }],
+  home: [
+    { department: "cleaning", reason: "Уход за домом", weight: 0.45 },
+    { department: "kitchen", reason: "Текстиль и посуда к дому", weight: 0.35 },
+  ],
+  gifts: [{ department: "packaging", reason: "Упаковка к подарку", weight: 0.55 }],
+  sport: [
+    { department: "kitchen", reason: "Бутылка и текстиль к спорту", weight: 0.4 },
+    { department: "home", reason: "Сумка к тренировке", weight: 0.35 },
+  ],
+  packaging: [
+    { department: "tools", reason: "Нож и пистолет к упаковке", weight: 0.45 },
+    { department: "stationery", reason: "Маркировка к коробу", weight: 0.35 },
+  ],
+  seasonal: [
+    { department: "gifts", reason: "Подарки к ёлке", weight: 0.5 },
+    { department: "packaging", reason: "Упаковка к новогодним наборам", weight: 0.4 },
+  ],
+  beauty: [{ department: "cleaning", reason: "Салфетки и расходники к гигиене", weight: 0.4 }],
+  safety: [
+    { department: "workwear", reason: "СИЗ к пожарной безопасности", weight: 0.45 },
+    { department: "furniture", reason: "Шкаф и подставка к знакам", weight: 0.4 },
+  ],
+  other: [{ department: "print", reason: "Расходники к сервису техники", weight: 0.3 }],
+};
+
+const deptPools: Record<DepartmentId, Product[]> = Object.fromEntries(
+  (Object.keys(DEPT_COMPLEMENT) as DepartmentId[]).map((id) => [
+    id,
+    collectByDepartment(id, 90).filter((product) => !isServiceSku(product.name, product.category, product.path)),
+  ]),
+) as Record<DepartmentId, Product[]>;
+
+function departmentLink(source: Product, candidate: Product): { reason: string; weight: number } | null {
+  if (candidate.department === source.department) return null;
+  const links = DEPT_COMPLEMENT[source.department] ?? [];
+  const hit = links.find((link) => link.department === candidate.department);
+  return hit ?? null;
+}
 
 function keywordMatch(source: Product, candidate: Product): { reason: string; weight: number } | null {
   const fromText = `${source.name} ${source.category} ${source.path ?? ""}`.toLowerCase();
@@ -224,6 +349,11 @@ function candidatePool(source: Product, extraIds: string[]): Product[] {
       if (product.id !== source.id) map.set(product.id, product);
     }
   });
+  for (const link of DEPT_COMPLEMENT[source.department] ?? []) {
+    for (const product of deptPools[link.department] ?? []) {
+      if (product.id !== source.id) map.set(product.id, product);
+    }
+  }
   for (const id of extraIds) {
     const product = getProduct(id);
     if (product) map.set(product.id, product);
@@ -270,6 +400,7 @@ export function recommend(productId: string, options: RecommendOptions = {}): Re
 
   for (const candidate of pool) {
     if (exclude.has(candidate.id) || hidden.has(candidate.id)) continue;
+    if (isServiceSku(candidate.name, candidate.category, candidate.path)) continue;
     const pinIndex = pins.indexOf(candidate.id);
     const scored = scoreCandidate(source, candidate, pinIndex);
     if (scored) ranked.push(scored);

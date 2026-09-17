@@ -62,8 +62,19 @@ export const RULES: ComplementRule[] = [
   { id: "r59", fromCategory: "Бумага офисная A4", toCategory: "Папки-регистраторы", weight: 0.42, kind: "workflow", reason: "Документы уходят в архив" },
 ];
 
+function categoryFits(actual: string, rule: string): boolean {
+  if (actual === rule) return true;
+  if (actual.includes(rule) || (rule.length >= 8 && rule.includes(actual))) return true;
+  if (rule.length >= 10 && actual.includes(rule.slice(0, 12))) return true;
+  return false;
+}
+
 export function findRule(fromCategory: string, toCategory: string): ComplementRule | undefined {
-  return RULES.find(
-    (rule) => rule.fromCategory === fromCategory && rule.toCategory === toCategory,
-  );
+  const from = fromCategory.toLowerCase();
+  const to = toCategory.toLowerCase();
+  return RULES.find((rule) => {
+    const rf = rule.fromCategory.toLowerCase();
+    const rt = rule.toCategory.toLowerCase();
+    return categoryFits(from, rf) && categoryFits(to, rt);
+  });
 }
