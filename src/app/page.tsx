@@ -3,14 +3,52 @@ import { AppShell } from "@/components/app-shell";
 import { CatalogBrowser } from "@/components/catalog-browser";
 import { PRODUCTS } from "@/lib/catalog";
 import { coverageSummary, coverageRows } from "@/lib/coverage";
+import { DEPARTMENTS } from "@/lib/departments";
 import { ORDER_VOLUME } from "@/lib/affinity";
 import { RULES } from "@/lib/rules";
+import type { DepartmentId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
+const PRODUCT_EXAMPLES = [
+  { href: "/p/148201", label: "HP LaserJet 107a" },
+  { href: "/p/148210", label: "МФУ Epson EcoTank" },
+  { href: "/p/120201", label: "Степлер" },
+  { href: "/p/120260", label: "Маркерная доска" },
+  { href: "/p/200601", label: "Кофемашина" },
+  { href: "/p/180401", label: "Короб картонный" },
+  { href: "/p/210701", label: "Огнетушитель" },
+  { href: "/p/150101", label: "Ноутбук" },
+  { href: "/p/160201", label: "Офисное кресло" },
+  { href: "/p/148301", label: "Ламинатор" },
+];
+
+const CATEGORY_EXAMPLES: { id: DepartmentId; label: string }[] = [
+  { id: "print", label: "Оргтехника" },
+  { id: "stationery", label: "Канцтовары" },
+  { id: "paper", label: "Бумага" },
+  { id: "packaging", label: "Упаковка" },
+  { id: "food", label: "Кофе и кухня" },
+  { id: "cleaning", label: "Хозтовары" },
+  { id: "furniture", label: "Мебель" },
+  { id: "computers", label: "Компьютеры" },
+  { id: "workwear", label: "Спецодежда" },
+  { id: "safety", label: "Пожарная безопасность" },
+  { id: "trade", label: "Для торговли" },
+];
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ department?: string }>;
+}) {
   const summary = coverageSummary();
   const coverage = coverageRows();
+  const params = await searchParams;
+  const departmentIds = new Set(DEPARTMENTS.map((item) => item.id));
+  const initialDepartment = departmentIds.has(params.department as DepartmentId)
+    ? (params.department as DepartmentId)
+    : "all";
 
   return (
     <AppShell>
@@ -21,18 +59,40 @@ export default function HomePage() {
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85">
           Сервис собирает расходники, совместимые картриджи и позиции «с этим покупают» — как блок на карточке Комус.
-          Мерчандайзер может закрепить или скрыть выдачу, сайт забирает готовый JSON.
         </p>
-        <div className="mt-5 flex flex-wrap gap-2 text-sm">
-          <Link href="/p/148201" className="rounded-lg bg-white px-3 py-2 font-medium text-primary">
-            Пример: HP LaserJet 107a
-          </Link>
-          <Link href="/p/200601" className="rounded-lg bg-white/15 px-3 py-2 font-medium">
-            Кофемашина
-          </Link>
-          <Link href="/workbench/210701" className="rounded-lg bg-white/15 px-3 py-2 font-medium">
-            Верстак: огнетушитель
-          </Link>
+        <div className="mt-5 space-y-3">
+          <div>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/65">Примеры товаров</p>
+            <div className="flex flex-wrap gap-2 text-sm">
+              {PRODUCT_EXAMPLES.map((item, index) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={
+                    index === 0
+                      ? "rounded-lg bg-white px-3 py-2 font-medium text-primary"
+                      : "rounded-lg bg-white/15 px-3 py-2 font-medium hover:bg-white/25"
+                  }
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.16em] text-white/65">Категории каталога</p>
+            <div className="flex flex-wrap gap-2 text-sm">
+              {CATEGORY_EXAMPLES.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/?department=${item.id}#catalog`}
+                  className="rounded-lg bg-white/15 px-3 py-2 font-medium hover:bg-white/25"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -43,7 +103,14 @@ export default function HomePage() {
         <Kpi label="Заказов в модели" value={String(ORDER_VOLUME)} hint="совместные покупки" />
       </div>
 
-      <CatalogBrowser products={PRODUCTS} coverage={coverage} />
+      <div id="catalog">
+        <CatalogBrowser
+          key={initialDepartment}
+          products={PRODUCTS}
+          coverage={coverage}
+          initialDepartment={initialDepartment}
+        />
+      </div>
     </AppShell>
   );
 }

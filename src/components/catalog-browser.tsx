@@ -13,12 +13,14 @@ import type { DepartmentId, Product } from "@/lib/types";
 export function CatalogBrowser({
   products,
   coverage,
+  initialDepartment = "all",
 }: {
   products: Product[];
   coverage: CoverageRow[];
+  initialDepartment?: DepartmentId | "all";
 }) {
   const [query, setQuery] = useState("");
-  const [department, setDepartment] = useState<DepartmentId | "all">("all");
+  const [department, setDepartment] = useState<DepartmentId | "all">(initialDepartment);
   const coverageMap = useMemo(
     () => new Map(coverage.map((row) => [row.id, row])),
     [coverage],
