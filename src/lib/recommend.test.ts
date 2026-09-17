@@ -78,5 +78,11 @@ test("ссылка на Комус открывает поиск, а не выд
   const url = komusCatalogUrl(product);
   assert.ok(url.startsWith("https://www.komus.ru/search?text="));
   assert.equal(url.includes("/p/148201"), false);
+  assert.equal(decodeURIComponent(url).includes("148201"), false);
   assert.ok(decodeURIComponent(url).includes("LaserJet"));
+
+  const toner = getProduct("148202");
+  assert.ok(toner);
+  const tonerUrl = decodeURIComponent(komusCatalogUrl(toner));
+  assert.ok(tonerUrl.includes("W1107A"));
 });

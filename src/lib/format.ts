@@ -19,8 +19,9 @@ export function workbenchHref(id: string): string {
 }
 
 /** Live Komus catalog search — demo SKUs are not real /p/{id}/ pages. */
-export function komusCatalogUrl(product: { name: string; brand: string; sku: string }): string {
-  const text = [product.brand, product.sku, product.name]
+export function komusCatalogUrl(product: { id?: string; name: string; brand: string; sku: string }): string {
+  const keepSku = Boolean(product.sku) && product.sku !== product.id && /[A-Za-zА-Яа-я]/.test(product.sku);
+  const text = [product.brand, keepSku ? product.sku : null, product.name]
     .filter(Boolean)
     .join(" ")
     .replace(/\s+/g, " ")
