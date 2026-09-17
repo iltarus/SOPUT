@@ -9,7 +9,18 @@ export type DepartmentId =
   | "workwear"
   | "food"
   | "safety"
-  | "trade";
+  | "trade"
+  | "school"
+  | "kitchen"
+  | "appliances"
+  | "electronics"
+  | "tools"
+  | "gifts"
+  | "sport"
+  | "home"
+  | "seasonal"
+  | "beauty"
+  | "other";
 
 export type Product = {
   id: string;
@@ -18,6 +29,8 @@ export type Product = {
   brand: string;
   department: DepartmentId;
   category: string;
+  path?: string;
+  image?: string;
   price: number;
   unit: string;
   pack?: string;

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "catalog:build": "python3 scripts/build-komus-catalog.py",
     "dev": "next dev --port 43127 --hostname 127.0.0.1",
     "build": "next build",
     "start": "next start --port 43127 --hostname 127.0.0.1",

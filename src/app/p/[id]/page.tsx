@@ -37,16 +37,23 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <ProductVisual
           department={product.department}
           brand={product.brand}
+          image={product.image}
           className="min-h-64 rounded-2xl sm:min-h-80"
         />
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">арт. {product.sku}</Badge>
-            {product.inStock ? <Badge>В наличии · {product.stockQty} шт</Badge> : <Badge variant="destructive">Нет в наличии</Badge>}
+            {product.inStock ? (
+              <Badge>{product.stockQty > 0 ? `В наличии · ${product.stockQty} шт` : "Есть на komus.ru"}</Badge>
+            ) : (
+              <Badge variant="destructive">Нет в наличии</Badge>
+            )}
             <Badge variant="outline">{related.coverage.label}</Badge>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{product.name}</h1>
-          <p className="text-sm leading-6 text-muted-foreground">{product.description}</p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {product.description || `${departmentTitle(product.department)} · ${product.category}`}
+          </p>
           <p className="text-3xl font-semibold">{formatPrice(product.price)}</p>
           <p className="text-xs text-muted-foreground">
             {product.pack ? `${product.pack} · ` : null}

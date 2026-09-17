@@ -14,7 +14,8 @@ export default function CoveragePage() {
     <AppShell>
       <h1 className="text-2xl font-semibold tracking-tight">Покрытие рекомендаций</h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Где витрина ещё не умеет допродать. Слабые позиции — в начало списка: их разбирают в верстаке.
+        Полный каталог — {summary.total.toLocaleString("ru-RU")} карточек из sitemap. Покрытие считаем по размеченному
+        срезу ({summary.featured} SKU): слабые позиции — в начало списка, их разбирают в верстаке.
       </p>
       <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
         <Stat label="Каталог" value={summary.total} />
@@ -57,7 +58,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-xl border bg-card p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-semibold">{value}</p>
+      <p className="text-xl font-semibold">{value.toLocaleString("ru-RU")}</p>
     </div>
   );
 }

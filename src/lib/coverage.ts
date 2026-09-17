@@ -1,4 +1,5 @@
-import { PRODUCTS } from "./catalog";
+import { PRODUCTS as FEATURED } from "./catalog-featured";
+import { catalogStats } from "./catalog";
 import { recommend } from "./recommend";
 
 export type CoverageRow = {
@@ -12,7 +13,7 @@ export type CoverageRow = {
 };
 
 export function coverageRows(): CoverageRow[] {
-  return PRODUCTS.map((product) => {
+  return FEATURED.map((product) => {
     const recs = recommend(product.id, { limit: 8 });
     const top = recs[0]?.score ?? 0;
     let label = "Нет рекомендаций";
@@ -37,12 +38,14 @@ export function coverageSummary() {
   const ok = rows.filter((row) => row.label === "Достаточное").length;
   const weak = rows.filter((row) => row.label === "Слабое").length;
   const empty = rows.filter((row) => row.label === "Нет рекомендаций").length;
+  const catalog = catalogStats();
   return {
-    total: rows.length,
+    total: catalog.total,
+    featured: rows.length,
     full,
     ok,
     weak,
     empty,
-    coveragePct: Math.round(((full + ok) / rows.length) * 100),
+    coveragePct: rows.length ? Math.round(((full + ok) / rows.length) * 100) : 0,
   };
 }

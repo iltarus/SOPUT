@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pin, PinOff, Search, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { ReasonList } from "@/components/reason-list";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatPrice } from "@/lib/format";
+import { asProduct, type SerializedProduct } from "@/lib/serialize";
 import type { Product, Recommendation } from "@/lib/types";
 
 async function mutate(productId: string, relatedId: string, action: "pin" | "unpin" | "hide" | "unhide") {
@@ -22,28 +23,47 @@ async function mutate(productId: string, relatedId: string, action: "pin" | "unp
 export function WorkbenchEditor({
   product,
   recommendations,
-  catalog,
-  hiddenIds,
+  hiddenProducts,
   pinnedIds,
 }: {
   product: Product;
   recommendations: Recommendation[];
-  catalog: Product[];
-  hiddenIds: string[];
+  hiddenProducts: Product[];
   pinnedIds: string[];
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [matches, setMatches] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
   const [pending, startTransition] = useTransition();
 
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    return catalog
-      .filter((item) => item.id !== product.id)
-      .filter((item) => `${item.name} ${item.sku} ${item.brand}`.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [catalog, product.id, query]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(query.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  useEffect(() => {
+    if (debounced.length < 2) {
+      setMatches([]);
+      setSearching(false);
+      return;
+    }
+    const controller = new AbortController();
+    setSearching(true);
+    fetch(`/api/products?q=${encodeURIComponent(debounced)}&limit=8`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("search failed");
+        const data = (await response.json()) as { items: SerializedProduct[] };
+        setMatches(data.items.map(asProduct).filter((item) => item.id !== product.id));
+      })
+      .catch((err: unknown) => {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setMatches([]);
+      })
+      .finally(() => setSearching(false));
+    return () => controller.abort();
+  }, [debounced, product.id]);
 
   const run = (relatedId: string, action: "pin" | "unpin" | "hide" | "unhide", ok: string) => {
     startTransition(async () => {
@@ -110,35 +130,32 @@ export function WorkbenchEditor({
             );
           })
         )}
-        {hiddenIds.length > 0 ? (
+        {hiddenProducts.length > 0 ? (
           <div className="rounded-xl border bg-muted/40 p-4">
             <p className="mb-2 text-sm font-medium">Скрытые</p>
             <div className="space-y-2">
-              {hiddenIds.map((id) => {
-                const item = catalog.find((product) => product.id === id);
-                if (!item) return null;
-                return (
-                  <div key={id} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="truncate">{item.name}</span>
-                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(id, "unhide", "Снова в выдаче")}>
-                      Вернуть
-                    </Button>
-                  </div>
-                );
-              })}
+              {hiddenProducts.map((item) => (
+                <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span className="truncate">{item.name}</span>
+                  <Button size="sm" variant="ghost" disabled={pending} onClick={() => run(item.id, "unhide", "Снова в выдаче")}>
+                    Вернуть
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         ) : null}
       </div>
-      <aside className="space-y-3 lg:sticky lg:top-20 h-fit">
+      <aside className="h-fit space-y-3 lg:sticky lg:top-20">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm font-medium">Закрепить вручную</p>
-          <p className="mt-1 text-xs text-muted-foreground">Любой артикул каталога можно поставить первым в блоке.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Любой артикул каталога Комус можно поставить первым в блоке.</p>
           <div className="relative mt-3">
             <Search className="absolute top-2.5 left-3 size-4 text-muted-foreground" />
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Название или артикул" className="pl-9" />
           </div>
           <div className="mt-3 space-y-2">
+            {searching ? <p className="text-xs text-muted-foreground">Ищем…</p> : null}
             {matches.map((item) => (
               <button
                 key={item.id}
@@ -154,8 +171,8 @@ export function WorkbenchEditor({
                 <span className="font-mono text-[11px] text-muted-foreground">арт. {item.sku}</span>
               </button>
             ))}
-            {query.trim().length >= 2 && matches.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Нет совпадений в демо-каталоге.</p>
+            {debounced.length >= 2 && !searching && matches.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Нет совпадений в каталоге.</p>
             ) : null}
           </div>
         </div>

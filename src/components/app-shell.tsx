@@ -100,7 +100,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       <footer className="border-t bg-card">
         <div className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>Сервис подбора сопутствующих товаров для каталога komus.ru</p>
-          <p>Демо-каталог, без живых остатков Комус. API готов к виджету на карточке товара.</p>
+          <p>Полный каталог по sitemap Комус. API готов к виджету на карточке товара.</p>
         </div>
       </footer>
     </div>

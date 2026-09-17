@@ -7,18 +7,17 @@ import { ProductCard } from "@/components/product-card";
 import { ReasonList } from "@/components/reason-list";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { formatPrice } from "@/lib/format";
+import { asProduct, type SerializedProduct } from "@/lib/serialize";
 import { cn } from "@/lib/utils";
-import type { Recommendation } from "@/lib/types";
-import { getProduct } from "@/lib/catalog";
+import type { Product, Recommendation } from "@/lib/types";
 
-type ApiItem = {
-  id: string;
+type ApiItem = SerializedProduct & {
   score: number;
   group: Recommendation["group"];
   reasons: Recommendation["reasons"];
 };
 
-type Hydrated = ApiItem & { product: ReturnType<typeof getProduct> };
+type Hydrated = ApiItem & { product: Product };
 
 export function CartView() {
   const { items, setQty, remove, clear, total } = useCart();
@@ -46,7 +45,7 @@ export function CartView() {
           error: null,
           recs: data.items.map((item) => ({
             ...item,
-            product: getProduct(item.id),
+            product: asProduct(item),
           })),
         });
       })

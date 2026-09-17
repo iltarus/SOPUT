@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { WorkbenchEditor } from "@/components/workbench-editor";
-import { PRODUCTS, getProduct } from "@/lib/catalog";
+import { getProduct } from "@/lib/catalog";
 import { readOverrides } from "@/lib/overrides";
 import { recommend } from "@/lib/recommend";
 
@@ -15,6 +15,9 @@ export default async function WorkbenchProductPage({ params }: { params: Promise
 
   const recommendations = recommend(id, { limit: 16, diversify: false });
   const overrides = readOverrides();
+  const hiddenProducts = (overrides.hidden[id] ?? [])
+    .map((hiddenId) => getProduct(hiddenId))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return (
     <AppShell>
@@ -40,8 +43,7 @@ export default async function WorkbenchProductPage({ params }: { params: Promise
       <WorkbenchEditor
         product={product}
         recommendations={recommendations}
-        catalog={PRODUCTS}
-        hiddenIds={overrides.hidden[id] ?? []}
+        hiddenProducts={hiddenProducts}
         pinnedIds={overrides.pins[id] ?? []}
       />
     </AppShell>

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { CatalogBrowser } from "@/components/catalog-browser";
-import { PRODUCTS } from "@/lib/catalog";
-import { coverageSummary, coverageRows } from "@/lib/coverage";
+import { catalogStats, queryProducts } from "@/lib/catalog";
+import { coverageSummary } from "@/lib/coverage";
 import { DEPARTMENTS } from "@/lib/departments";
 import { ORDER_VOLUME } from "@/lib/affinity";
 import { RULES } from "@/lib/rules";
@@ -12,15 +12,15 @@ export const dynamic = "force-dynamic";
 
 const PRODUCT_EXAMPLES = [
   { href: "/p/148201", label: "HP LaserJet 107a" },
+  { href: "/p/1042218", label: "HP LaserJet Enterprise" },
   { href: "/p/148210", label: "МФУ Epson EcoTank" },
-  { href: "/p/120201", label: "Степлер" },
+  { href: "/p/1271903", label: "Степлер Attache" },
   { href: "/p/120260", label: "Маркерная доска" },
   { href: "/p/200601", label: "Кофемашина" },
   { href: "/p/180401", label: "Короб картонный" },
   { href: "/p/210701", label: "Огнетушитель" },
   { href: "/p/150101", label: "Ноутбук" },
   { href: "/p/160201", label: "Офисное кресло" },
-  { href: "/p/148301", label: "Ламинатор" },
 ];
 
 const CATEGORY_EXAMPLES: { id: DepartmentId; label: string }[] = [
@@ -32,9 +32,12 @@ const CATEGORY_EXAMPLES: { id: DepartmentId; label: string }[] = [
   { id: "cleaning", label: "Хозтовары" },
   { id: "furniture", label: "Мебель" },
   { id: "computers", label: "Компьютеры" },
+  { id: "electronics", label: "Электроника" },
+  { id: "appliances", label: "Бытовая техника" },
   { id: "workwear", label: "Спецодежда" },
   { id: "safety", label: "Пожарная безопасность" },
-  { id: "trade", label: "Для торговли" },
+  { id: "school", label: "Учёба и творчество" },
+  { id: "home", label: "Дом и дача" },
 ];
 
 export default async function HomePage({
@@ -42,13 +45,17 @@ export default async function HomePage({
 }: {
   searchParams: Promise<{ department?: string }>;
 }) {
+  const stats = catalogStats();
   const summary = coverageSummary();
-  const coverage = coverageRows();
   const params = await searchParams;
   const departmentIds = new Set(DEPARTMENTS.map((item) => item.id));
   const initialDepartment = departmentIds.has(params.department as DepartmentId)
     ? (params.department as DepartmentId)
     : "all";
+  const page = queryProducts({
+    department: initialDepartment === "all" ? undefined : initialDepartment,
+    limit: 48,
+  });
 
   return (
     <AppShell>
@@ -59,6 +66,7 @@ export default async function HomePage({
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-white/85">
           Сервис собирает расходники, совместимые картриджи и позиции «с этим покупают» — как блок на карточке Комус.
+          В каталоге все {stats.total.toLocaleString("ru-RU")} карточек из sitemap komus.ru.
         </p>
         <div className="mt-5 space-y-3">
           <div>
@@ -97,8 +105,8 @@ export default async function HomePage({
       </section>
 
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi label="Товаров в срезе" value={String(summary.total)} hint="демо-каталог Комус" />
-        <Kpi label="Покрытие витрины" value={`${summary.coveragePct}%`} hint="3+ сопутствующих" />
+        <Kpi label="Товаров в каталоге" value={stats.total.toLocaleString("ru-RU")} hint="sitemap komus.ru" />
+        <Kpi label="Покрытие витрины" value={`${summary.coveragePct}%`} hint={`${summary.featured} размеченных SKU`} />
         <Kpi label="Правил связок" value={String(RULES.length)} hint="категория → категория" />
         <Kpi label="Заказов в модели" value={String(ORDER_VOLUME)} hint="совместные покупки" />
       </div>
@@ -106,8 +114,8 @@ export default async function HomePage({
       <div id="catalog">
         <CatalogBrowser
           key={initialDepartment}
-          products={PRODUCTS}
-          coverage={coverage}
+          initialItems={page.items}
+          initialTotal={page.total}
           initialDepartment={initialDepartment}
         />
       </div>

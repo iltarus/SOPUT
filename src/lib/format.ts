@@ -1,4 +1,5 @@
 export function formatPrice(value: number): string {
+  if (!value) return "Цена на komus.ru";
   return new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency: "RUB",
@@ -18,8 +19,17 @@ export function workbenchHref(id: string): string {
   return `/workbench/${id}`;
 }
 
-/** Live Komus catalog search — demo SKUs are not real /p/{id}/ pages. */
-export function komusCatalogUrl(product: { id?: string; name: string; brand: string; sku: string }): string {
+/** Live /p/{id}/ when the SKU came from the Komus sitemap; otherwise search. */
+export function komusCatalogUrl(product: {
+  id?: string;
+  name: string;
+  brand: string;
+  sku: string;
+  path?: string;
+}): string {
+  if (product.path && product.id && /^\d+$/.test(product.id)) {
+    return `https://www.komus.ru/p/${product.id}/`;
+  }
   const keepSku = Boolean(product.sku) && product.sku !== product.id && /[A-Za-zА-Яа-я]/.test(product.sku);
   const text = [product.brand, keepSku ? product.sku : null, product.name]
     .filter(Boolean)

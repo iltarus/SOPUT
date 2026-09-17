@@ -121,9 +121,19 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
     });
   }
 
-  if (candidate.brand === source.brand && candidate.category !== source.category) {
+  if (
+    candidate.brand === source.brand &&
+    candidate.category !== source.category &&
+    !["Комус", "Komus"].includes(candidate.brand)
+  ) {
     score += 8;
     reasons.push({ type: "brand", label: `Тот же бренд: ${source.brand}`, weight: 8 });
+  }
+
+  const keyword = keywordMatch(source, candidate);
+  if (keyword && !foreign) {
+    score += 36 * keyword.weight;
+    reasons.push({ type: "rule", label: keyword.reason, weight: 36 * keyword.weight });
   }
 
   const attrs = attributeBoost(source, candidate);
@@ -161,6 +171,71 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
   return { ...base, group: pickGroup(source, base) };
 }
 
+const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[] = [
+  { from: /принтер|мфу|laserjet|lazern|ecotank|струйн/, tokens: ["картридж", "чернил", "тонер", "бумага", "фотобарабан"], reason: "Расходник к технике печати", weight: 1 },
+  { from: /картридж|тонер|чернил/, tokens: ["бумага", "принтер", "мфу"], reason: "Бумага и техника к расходнику печати", weight: 0.7 },
+  { from: /степлер/, tokens: ["скоб"], reason: "Скобы к степлеру", weight: 1 },
+  { from: /дырокол/, tokens: ["папк", "регистратор", "файл"], reason: "Архив к дыроколу", weight: 0.7 },
+  { from: /доска|флипчарт/, tokens: ["маркер", "губк", "магнит"], reason: "Маркеры и аксессуары к доске", weight: 1 },
+  { from: /ламинатор/, tokens: ["пленк", "плёнк"], reason: "Плёнка к ламинатору", weight: 1 },
+  { from: /брошюратор/, tokens: ["пружин", "обложк"], reason: "Пружины и обложки к брошюратору", weight: 1 },
+  { from: /шредер|уничтожител/, tokens: ["масл"], reason: "Масло к шредеру", weight: 0.9 },
+  { from: /пистолет/, tokens: ["стержн", "скотч", "этикет"], reason: "Расходник к пистолету", weight: 0.7 },
+  { from: /ноутбук|noutbuk/, tokens: ["мыш", "сумк", "коврик"], reason: "Аксессуары к ноутбуку", weight: 0.8 },
+  { from: /монитор/, tokens: ["кабел", "hdmi"], reason: "Кабель к монитору", weight: 0.8 },
+  { from: /кресл/, tokens: ["коврик"], reason: "Коврик под кресло", weight: 0.8 },
+  { from: /кофемашин|кофеварк|кофемолк/, tokens: ["кофе", "стакан", "сахар"], reason: "Кофе и посуда к кофемашине", weight: 1 },
+  { from: /чайник/, tokens: ["чай", "стакан"], reason: "Чай к чайнику", weight: 0.85 },
+  { from: /огнетушител/, tokens: ["подставк", "знак"], reason: "Подставка и знак к огнетушителю", weight: 0.95 },
+  { from: /короб|гофро/, tokens: ["скотч", "пленк", "плёнк"], reason: "Скотч и плёнка к коробу", weight: 0.9 },
+  { from: /халат|спецодежд/, tokens: ["перчат", "шкаф"], reason: "СИЗ и шкаф к спецодежде", weight: 0.55 },
+  { from: /диспенсер/, tokens: ["мыло", "полотенц"], reason: "Картридж к диспенсеру", weight: 0.9 },
+];
+
+const hintPools: Product[][] = HINTS.map((hint) => {
+  const pool: Product[] = [];
+  for (const product of PRODUCTS) {
+    const toText = `${product.name} ${product.category}`.toLowerCase();
+    if (hint.tokens.some((token) => toText.includes(token))) {
+      pool.push(product);
+      if (pool.length >= 400) break;
+    }
+  }
+  return pool;
+});
+
+function keywordMatch(source: Product, candidate: Product): { reason: string; weight: number } | null {
+  const fromText = `${source.name} ${source.category} ${source.path ?? ""}`.toLowerCase();
+  const toText = `${candidate.name} ${candidate.category}`.toLowerCase();
+  for (const hint of HINTS) {
+    if (!hint.from.test(fromText)) continue;
+    if (hint.tokens.some((token) => toText.includes(token))) {
+      return { reason: hint.reason, weight: hint.weight };
+    }
+  }
+  return null;
+}
+
+function candidatePool(source: Product, extraIds: string[]): Product[] {
+  const map = new Map<string, Product>();
+  for (const row of allCompatibility(source.id)) {
+    const product = getProduct(row.relatedId);
+    if (product) map.set(product.id, product);
+  }
+  const blob = `${source.name} ${source.category} ${source.path ?? ""}`.toLowerCase();
+  HINTS.forEach((hint, index) => {
+    if (!hint.from.test(blob)) return;
+    for (const product of hintPools[index]) {
+      if (product.id !== source.id) map.set(product.id, product);
+    }
+  });
+  for (const id of extraIds) {
+    const product = getProduct(id);
+    if (product) map.set(product.id, product);
+  }
+  return [...map.values()];
+}
+
 function diversify(ranked: Recommendation[], limit: number): Recommendation[] {
   const picked: Recommendation[] = [];
   const perCategory = new Map<string, number>();
@@ -196,8 +271,9 @@ export function recommend(productId: string, options: RecommendOptions = {}): Re
   const limit = options.limit ?? 12;
 
   const ranked: Recommendation[] = [];
+  const pool = candidatePool(source, pins);
 
-  for (const candidate of PRODUCTS) {
+  for (const candidate of pool) {
     if (exclude.has(candidate.id) || hidden.has(candidate.id)) continue;
     const pinIndex = pins.indexOf(candidate.id);
     const scored = scoreCandidate(source, candidate, pinIndex);
@@ -280,16 +356,25 @@ export function serializeRecommendation(rec: Recommendation) {
     brand: rec.product.brand,
     category: rec.product.category,
     department: rec.product.department,
+    path: rec.product.path ?? null,
+    image: rec.product.image ?? null,
     price: rec.product.price,
     unit: rec.product.unit,
+    pack: rec.product.pack ?? null,
     inStock: rec.product.inStock,
+    stockQty: rec.product.stockQty,
+    attributes: rec.product.attributes,
+    tags: rec.product.tags,
+    description: rec.product.description,
     score: rec.score,
     group: rec.group,
     reasons: rec.reasons.map((reason) => ({
       type: reason.type,
       label: reason.label,
+      weight: reason.weight,
     })),
     url: `/p/${rec.product.id}`,
+    workbenchUrl: `/workbench/${rec.product.id}`,
     komusUrl: komusCatalogUrl(rec.product),
   };
 }

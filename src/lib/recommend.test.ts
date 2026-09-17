@@ -3,7 +3,7 @@ import { after, before, test } from "node:test";
 import { recommend, recommendForCart } from "./recommend";
 import { komusCatalogUrl } from "./format";
 import { readOverrides, writeOverrides } from "./overrides";
-import { getProduct } from "./catalog";
+import { getProduct, catalogStats } from "./catalog";
 
 const snapshot = readOverrides();
 
@@ -72,9 +72,10 @@ test("каталог содержит карточку с указанным а�
   assert.equal(getProduct("210701")?.category, "Огнетушители");
 });
 
-test("ссылка на Комус открывает поиск, а не выдуманный /p/{id}", () => {
+test("ссылка на Комус для демо-id открывает поиск, а не выдуманный /p/{id}", () => {
   const product = getProduct("148201");
   assert.ok(product);
+  assert.equal(product.path, undefined);
   const url = komusCatalogUrl(product);
   assert.ok(url.startsWith("https://www.komus.ru/search?text="));
   assert.equal(url.includes("/p/148201"), false);
@@ -85,4 +86,19 @@ test("ссылка на Комус открывает поиск, а не выд
   assert.ok(toner);
   const tonerUrl = decodeURIComponent(komusCatalogUrl(toner));
   assert.ok(tonerUrl.includes("W1107A"));
+});
+
+test("полный каталог Комус загружается из sitemap", () => {
+  assert.ok(catalogStats().total > 100000);
+  const live = getProduct("1042218");
+  assert.ok(live);
+  assert.ok(live.path);
+  assert.equal(komusCatalogUrl(live), "https://www.komus.ru/p/1042218/");
+  assert.ok(live.name.toLowerCase().includes("принтер"));
+});
+
+test("живой степлер из sitemap получает скобы по ключевым словам", () => {
+  const recs = recommend("1271903", { limit: 8 });
+  assert.ok(recs.length > 0);
+  assert.ok(recs.some((item) => item.product.name.toLowerCase().includes("скоб")));
 });

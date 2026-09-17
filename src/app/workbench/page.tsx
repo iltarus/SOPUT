@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { PRODUCTS } from "@/lib/catalog";
+import { WorkbenchSearch } from "@/components/workbench-search";
+import { PRODUCTS as FEATURED } from "@/lib/catalog-featured";
+import { catalogStats } from "@/lib/catalog";
 import { recommend } from "@/lib/recommend";
 import { formatPrice } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 export default function WorkbenchIndexPage() {
-  const rows = PRODUCTS.map((product) => {
+  const stats = catalogStats();
+  const rows = FEATURED.map((product) => {
     const recs = recommend(product.id, { limit: 8 });
     return { product, recs };
   }).sort((a, b) => a.recs.length - b.recs.length);
@@ -16,9 +19,12 @@ export default function WorkbenchIndexPage() {
     <AppShell>
       <h1 className="text-2xl font-semibold tracking-tight">Верстак мерчандайзера</h1>
       <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-        Сначала позиции со слабой выдачей. Закрепите расходник или скройте нерелевантный товар — виджет на карточке
-        обновится сразу.
+        Полный каталог — {stats.total.toLocaleString("ru-RU")} карточек Комус. Ниже размеченный срез со слабой выдачей.
+        Любой артикул из sitemap открывается поиском.
       </p>
+      <div className="mt-5">
+        <WorkbenchSearch />
+      </div>
       <div className="mt-6 overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs text-muted-foreground">

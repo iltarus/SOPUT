@@ -4,7 +4,7 @@ const ENDPOINTS = [
   {
     method: "GET",
     path: "/api/products",
-    desc: "Поиск по каталогу. Параметры: q, department, category.",
+    desc: "Поиск по полному каталогу. Параметры: q, department, category, offset, limit (макс. 96).",
   },
   {
     method: "GET",
@@ -44,8 +44,9 @@ export default function DocsPage() {
       <h1 className="text-2xl font-semibold tracking-tight">API для витрины Комус</h1>
       <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
         Виджет на карточке товара ходит в <code className="rounded bg-muted px-1">/related</code> и рисует группы
-        «Расходные материалы» и «С этим покупают». Ссылка «Карточка на komus.ru» открывает поиск на витрине Комус по
-        бренду, артикулу и названию — демо-id не совпадают с живыми <code className="rounded bg-muted px-1">/p/&#123;id&#125;/</code>.
+        «Расходные материалы» и «С этим покупают». Живые артикулы из sitemap открывают{" "}
+        <code className="rounded bg-muted px-1">https://www.komus.ru/p/&#123;id&#125;/</code>. Размеченные демо-SKU без
+        записи в sitemap ведут в поиск на витрине Комус.
       </p>
       <div className="mt-6 space-y-3">
         {ENDPOINTS.map((item) => (
