@@ -1,10 +1,10 @@
 {
   "total": 169995,
   "featured": 169995,
-  "full": 29475,
+  "full": 169995,
   "ok": 0,
-  "weak": 25,
-  "empty": 140495,
-  "coveragePct": 17,
-  "builtAt": "2026-09-17T23:36:28.300Z"
+  "weak": 0,
+  "empty": 0,
+  "coveragePct": 100,
+  "builtAt": "2026-09-18T00:23:22.938Z"
 }
