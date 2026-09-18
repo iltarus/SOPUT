@@ -8,50 +8,35 @@ import type { CoverageLabel, CoverageRow, CoverageSummary } from "./coverage-lab
 export type { CoverageLabel, CoverageRelated, CoverageRow, CoverageSummary } from "./coverage-label";
 export { COVERAGE_LABELS, coverageLabel } from "./coverage-label";
 
-type Snapshot = {
-  builtAt: string;
-  summary: CoverageSummary;
-  items: CoverageRow[];
-};
-
 function loadSummary(): CoverageSummary {
   const file = path.join(process.cwd(), "data", "komus-coverage.meta.json");
   return JSON.parse(readFileSync(file, "utf8")) as CoverageSummary;
 }
 
-function loadSnapshot(): Snapshot {
-  const file = path.join(process.cwd(), "data", "komus-coverage.json.gz");
-  const buf = gunzipSync(readFileSync(file));
-  return JSON.parse(buf.toString("utf8")) as Snapshot;
-}
-
 const summaryCache = loadSummary();
+const NDJSON = path.join(process.cwd(), "data", "komus-coverage.ndjson.gz");
 
-let snapshot: Snapshot | null = null;
-let haystacks: string[] | null = null;
-let byId: Map<string, CoverageRow> | null = null;
-
-function ensureSnapshot(): Snapshot {
-  if (snapshot) return snapshot;
-  snapshot = loadSnapshot();
-  haystacks = snapshot.items.map(
-    (row) => `${row.id} ${row.name} ${row.category} ${row.department}`.toLowerCase(),
-  );
-  byId = new Map(snapshot.items.map((row) => [row.id, row]));
-  return snapshot;
+function eachCoverageRow(fn: (row: CoverageRow) => boolean | void) {
+  const text = gunzipSync(readFileSync(NDJSON)).toString("utf8");
+  for (const line of text.split("\n")) {
+    if (!line) continue;
+    const stop = fn(JSON.parse(line) as CoverageRow);
+    if (stop === false) return;
+  }
 }
 
 export function coverageSummary(): CoverageSummary {
   return summaryCache;
 }
 
-export function coverageRows(): CoverageRow[] {
-  return ensureSnapshot().items;
-}
-
 export function getCoverage(id: string): CoverageRow | undefined {
-  ensureSnapshot();
-  return byId?.get(id);
+  let found: CoverageRow | undefined;
+  eachCoverageRow((row) => {
+    if (row.id !== id) return;
+    found = row;
+    return false;
+  });
+  return found;
 }
 
 export function serializeCoverageRow(row: CoverageRow) {
@@ -79,14 +64,15 @@ export function queryCoverage(options: CoverageQuery): { total: number; offset: 
   const items: CoverageRow[] = [];
   let total = 0;
 
-  for (let i = 0; i < ensureSnapshot().items.length; i++) {
-    const row = snapshot!.items[i];
-    if (options.department && row.department !== options.department) continue;
-    if (options.label && row.label !== options.label) continue;
-    if (q && row.id !== q && !haystacks![i].includes(q)) continue;
+  eachCoverageRow((row) => {
+    if (options.department && row.department !== options.department) return;
+    if (options.label && row.label !== options.label) return;
+    if (q && row.id !== q && !`${row.id} ${row.name} ${row.category} ${row.department}`.toLowerCase().includes(q)) {
+      return;
+    }
     total += 1;
     if (total > offset && items.length < limit) items.push(row);
-  }
+  });
 
   return { total, offset, items };
 }

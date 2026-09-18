@@ -64,8 +64,13 @@ function main() {
   };
 
   writeFileSync(OUT, gzipSync(Buffer.from(JSON.stringify({ builtAt: summary.builtAt, summary, items })), { level: 9 }));
+  const ndjson = path.join(process.cwd(), "data", "komus-coverage.ndjson.gz");
+  writeFileSync(
+    ndjson,
+    gzipSync(Buffer.from(items.map((row) => JSON.stringify(row)).join("\n") + "\n"), { level: 9 }),
+  );
   writeFileSync(META, JSON.stringify(summary, null, 2) + "\n");
-  process.stderr.write(`wrote ${OUT} and ${META} total=${total} coverage=${summary.coveragePct}%\n`);
+  process.stderr.write(`wrote ${OUT}, ${ndjson} and ${META} total=${total} coverage=${summary.coveragePct}%\n`);
   console.log(JSON.stringify(summary, null, 2));
 }
 
