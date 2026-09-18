@@ -16,7 +16,7 @@
 
 Размеченный демо-срез (принтеры, степлеры, правила сопутки) — **не этот файл**, а `src/lib/catalog-featured.ts`. Приложение склеивает оба источника в `src/lib/catalog.ts`.
 
-Снимок сопутствующих по **всем** SKU: [`komus-coverage.json.gz`](./komus-coverage.json.gz). Сборка: `npm run coverage:build`.
+Снимок сопутствующих по **всем** SKU: [`komus-coverage.json.gz`](./komus-coverage.json.gz) (для агентов) и [`komus-coverage.ndjson.gz`](./komus-coverage.ndjson.gz) (построчно, так читает приложение). Сборка: `npm run coverage:build`.
 
 Метаданные снимка каталога: [`komus-catalog.meta.json`](./komus-catalog.meta.json).
 
