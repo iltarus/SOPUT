@@ -108,7 +108,7 @@ test("письменный стол из sitemap получает кресло �
   const recs = recommend("2372300", { limit: 8 });
   assert.ok(recs.length >= 3);
   const blob = recs.map((item) => `${item.product.name} ${item.product.category} ${item.product.department}`).join(" ").toLowerCase();
-  assert.ok(/кресл|тумб|коврик|лотк|stationery|cleaning/.test(blob));
+  assert.ok(/кресл|тумб|лотк|коврик на стол|stationery/.test(blob));
 });
 
 test("шуруповёрт получает крепёж или СИЗ", () => {
@@ -116,6 +116,7 @@ test("шуруповёрт получает крепёж или СИЗ", () => {
   assert.ok(recs.length >= 3);
   const blob = recs.map((item) => `${item.product.name} ${item.product.department}`).join(" ").toLowerCase();
   assert.ok(/бит|саморез|сверл|workwear|packaging/.test(blob));
+  assert.ok(!recs.some((item) => item.product.department === "food"));
 });
 
 test("заправка картриджа не попадает в сопутку к живому принтеру", () => {

@@ -138,7 +138,7 @@ function scoreCandidate(source: Product, candidate: Product, pinIndex: number): 
   }
 
   const dept = departmentLink(source, candidate);
-  if (dept) {
+  if (dept && !keyword) {
     const weight = 32 * dept.weight;
     score += weight;
     reasons.push({ type: "rule", label: dept.reason, weight });
@@ -184,6 +184,11 @@ function isServiceSku(name: string, category: string, path = ""): boolean {
   return /заправка|восстановлен|ремонт|ауцорс|обслуживание|nashi-uslugi/.test(text);
 }
 
+function hasToken(text: string, token: string): boolean {
+  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^а-яёa-z0-9])${escaped}`, "i").test(text);
+}
+
 const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[] = [
   { from: /принтер|мфу|laserjet|lazern|ecotank|струйн/, tokens: ["картридж", "чернил", "тонер", "бумага", "фотобарабан"], reason: "Расходник к технике печати", weight: 1 },
   { from: /картридж|тонер|чернил/, tokens: ["бумага", "принтер", "мфу"], reason: "Бумага и техника к расходнику печати", weight: 0.7 },
@@ -200,13 +205,13 @@ const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[
   { from: /мыш/, tokens: ["коврик"], reason: "Коврик к мыши", weight: 0.75 },
   { from: /телевизор/, tokens: ["кабел", "кронштейн"], reason: "Кабель и кронштейн к телевизору", weight: 0.8 },
   { from: /наушник/, tokens: ["кабел", "чехол"], reason: "Аксессуар к наушникам", weight: 0.55 },
-  { from: /стол|писмен/, tokens: ["кресл", "тумб", "коврик", "ламп", "лотк"], reason: "Кресло, тумба и органайзер к столу", weight: 0.9 },
+  { from: /стол|писмен/, tokens: ["кресл", "тумб", "коврик", "лотк"], reason: "Кресло, тумба и органайзер к столу", weight: 0.9 },
   { from: /кресл|стул/, tokens: ["коврик", "тумб"], reason: "Коврик и тумба к креслу", weight: 0.8 },
   { from: /шкаф/, tokens: ["папк", "вешал", "короб"], reason: "Хранение к шкафу", weight: 0.7 },
   { from: /стеллаж/, tokens: ["короб", "контейнер", "лотк"], reason: "Короба и лотки к стеллажу", weight: 0.75 },
   { from: /тумб/, tokens: ["лотк", "органайзер"], reason: "Лоток к тумбе", weight: 0.65 },
   { from: /диван|банкет/, tokens: ["подушк", "плед"], reason: "Текстиль к мягкой мебели", weight: 0.7 },
-  { from: /шуруповерт|дрел|дрель/, tokens: ["бит", "саморез", "сверл", "аккумулятор"], reason: "Биты и крепёж к шуруповёрту", weight: 0.9 },
+  { from: /шуруповерт|дрел|дрель/, tokens: ["биты", "набор бит", "саморез", "сверл"], reason: "Биты и крепёж к шуруповёрту", weight: 0.9 },
   { from: /шлифмашин|болгарк/, tokens: ["диск", "круг"], reason: "Круги к шлифмашине", weight: 0.9 },
   { from: /кист|валик|маляр/, tokens: ["лент", "ванночк", "скотч"], reason: "Расходник к малярным работам", weight: 0.65 },
   { from: /светилник|светильник|ламп/, tokens: ["ламп", "патрон"], reason: "Лампа к светильнику", weight: 0.7 },
@@ -231,13 +236,18 @@ const HINTS: { from: RegExp; tokens: string[]; reason: string; weight: number }[
   { from: /шампунь|гель для душа/, tokens: ["балзам", "мочал", "полотенц"], reason: "Уход в комплект к гигиене", weight: 0.55 },
 ];
 
-const hintPools: Product[][] = HINTS.map((hint) =>
-  collectByText((name, category, _id, path) => {
-    if (isServiceSku(name, category, path)) return false;
-    const toText = `${name} ${category}`.toLowerCase();
-    return hint.tokens.some((token) => toText.includes(token));
-  }, 250),
-);
+const hintPools: Product[][] = HINTS.map((hint) => {
+  const map = new Map<string, Product>();
+  for (const token of hint.tokens) {
+    for (const product of collectByText((name, category, _id, path) => {
+      if (isServiceSku(name, category, path)) return false;
+      return hasToken(`${name} ${category}`.toLowerCase(), token);
+    }, 80)) {
+      map.set(product.id, product);
+    }
+  }
+  return [...map.values()];
+});
 
 const DEPT_COMPLEMENT: Record<DepartmentId, { department: DepartmentId; reason: string; weight: number }[]> = {
   furniture: [
@@ -329,7 +339,7 @@ function keywordMatch(source: Product, candidate: Product): { reason: string; we
   const toText = `${candidate.name} ${candidate.category}`.toLowerCase();
   for (const hint of HINTS) {
     if (!hint.from.test(fromText)) continue;
-    if (hint.tokens.some((token) => toText.includes(token))) {
+    if (hint.tokens.some((token) => hasToken(toText, token))) {
       return { reason: hint.reason, weight: hint.weight };
     }
   }
